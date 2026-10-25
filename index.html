@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Looksmax Face Scanner</title>
+<style>
+:root {
+  --bg: #050508;
+  --card: #0c0c10;
+  --border: #1a1a22;
+  --text: #e6e6ef;
+  --muted: #7a7a8c;
+  --neon: #00ff9d;
+  --neon2: #00d4ff;
+  --danger: #ff3b5c;
+  --warn: #ffc107;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  background-image:
+    radial-gradient(ellipse at 15% 0%, rgba(0,255,157,0.07) 0%, transparent 45%),
+    radial-gradient(ellipse at 85% 100%, rgba(0,212,255,0.06) 0%, transparent 45%);
+}
+.container { max-width: 720px; margin: 0 auto; padding: 20px 16px 80px; }
+header { text-align: center; padding: 28px 0 24px; }
+header h1 {
+  font-size: clamp(1.5rem, 5vw, 2.1rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  background: linear-gradient(120deg, var(--neon), var(--neon2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+header p { color: var(--muted); font-size: 0.9rem; margin-top: 6px; }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 22px;
+  margin-bottom: 18px;
+}
+.section-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--neon);
+  margin-bottom: 14px;
+  font-weight: 600;
+}
+
+.dropzone {
+  border: 2px dashed #2a2a35;
+  border-radius: 16px;
+  padding: 40px 20px;
+  text-align: center;
+  background: #0a0a0e;
+  cursor: pointer;
+  transition: all 0.25s;
+}
+.dropzone:hover, .dropzone.dragover {
+  border-color: var(--neon);
+  background: rgba(0,255,157,0.04);
+}
+.dropzone-icon { font-size: 2.8rem; margin-bottom: 10px; opacity: 0.7; }
+
+.or-divider {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 18px 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.or-divider::before, .or-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 28px;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+}
+.btn-primary {
+  background: linear-gradient(135deg, var(--neon), #00c87a);
+  color: #000;
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(0,255,157,0.35);
+}
+.btn-secondary {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.btn-secondary:hover {
+  border-color: var(--neon2);
+  color: var(--neon2);
+}
+
+.gender-row { display: flex; gap: 10px; }
+.gender-row label {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  background: #0a0a0e;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+.gender-row input { display: none; }
+.gender-row label:has(input:checked) {
+  border-color: var(--neon);
+  background: rgba(0,255,157,0.08);
+}
+.gender-row input:checked + span { color: var(--neon); }
+
+.field { margin-bottom: 16px; }
+.field:last-child { margin-bottom: 0; }
+.field label {
+  display: block;
+  font-size: 0.88rem;
+  font-weight: 500;
+  margin-bottom: 7px;
+}
+select {
+  width: 100%;
+  padding: 12px 14px;
+  background: #0a0a0e;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  font-size: 0.92rem;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%237a7a8c' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  cursor: pointer;
+}
+select:focus { outline: none; border-color: var(--neon); }
+
+#previewWrap {
+  display: none;
+  margin-bottom: 18px;
+  text-align: center;
+}
+#previewImg {
+  max-width: 100%;
+  max-height: 320px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+#resultsSection { display: none; }
+.score-hero { text-align: center; padding: 28px 16px; }
+.score-num {
+  font-size: clamp(3.5rem, 12vw, 5rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+.score-max { font-size: 1.15rem; color: var(--muted); }
+.verdict {
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin-top: 10px;
+  letter-spacing: 0.03em;
+}
+
+.breakdown { display: flex; flex-direction: column; gap: 12px; }
+.trait {
+  background: #0a0a0e;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+.trait-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.trait-name { font-weight: 600; font-size: 0.95rem; }
+.badge {
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+.badge-high { background: rgba(0,255,157,0.12); color: var(--neon); }
+.badge-mid  { background: rgba(255,193,7,0.12); color: var(--warn); }
+.badge-low  { background: rgba(255,59,92,0.12); color: var(--danger); }
+.trait-desc { font-size: 0.86rem; color: var(--muted); line-height: 1.5; }
+
+.guide-item {
+  background: #0a0a0e;
+  border-left: 3px solid var(--neon2);
+  border-radius: 0 10px 10px 0;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+.guide-item h4 {
+  font-size: 0.9rem;
+  color: var(--neon2);
+  margin-bottom: 4px;
+}
+.guide-item p {
+  font-size: 0.85rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.hidden { display: none !important; }
+footer {
+  text-align: center;
+  margin-top: 40px;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>LOOKSMAX FACE SCANNER</h1>
+    <p>Ручной анализ + Looksmaxxing Rating</p>
+  </header>
+
+  <!-- Загрузка -->
+  <div class="card" id="uploadCard">
+    <div class="section-label">Загрузка фото</div>
+    <div class="dropzone" id="dropzone">
+      <div class="dropzone-icon">⬡</div>
+      <h3>Перетащи фото лица сюда</h3>
+      <p style="color:var(--muted);font-size:0.88rem;margin-top:6px">или кликни, чтобы выбрать файл</p>
+      <input type="file" id="fileInput" accept="image/*" class="hidden">
+    </div>
+    <div class="or-divider">или</div>
+    <button class="btn btn-secondary" id="camBtn">📷 Включить камеру</button>
+  </div>
+
+  <div id="previewWrap">
+    <img id="previewImg" alt="preview">
+  </div>
+
+  <!-- Калибровка -->
+  <div class="card" id="calibCard" style="display:none">
+    <div class="section-label">Параметры лица</div>
+
+    <div class="field">
+      <label>Пол</label>
+      <div class="gender-row">
+        <label><input type="radio" name="gender" value="male" checked> <span>♂ Мужчина</span></label>
+        <label><input type="radio" name="gender" value="female"> <span>♀ Женщина</span></label>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>1. Чистота кожи</label>
+      <select id="skin">
+        <option value="t1">Т1 — Идеально чистая</option>
+        <option value="t2" selected>Т2 — Небольшие высыпания</option>
+        <option value="t3">Т3 — Сильное акне / постакне</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>2. Тон кожи</label>
+      <select id="tone">
+        <option value="t1">Т1 — Фарфоровая / светлая</option>
+        <option value="t2" selected>Т2 — Медовая / оливковая</option>
+        <option value="t3">Т3 — Тёмная / жёлтая</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>3. Губы</label>
+      <select id="lips"></select>
+    </div>
+
+    <div class="field">
+      <label>4. Брови</label>
+      <select id="brows">
+        <option value="t1">Т1 — Низкие, густые, тёмные (hunter)</option>
+        <option value="t2" selected>Т2 — Средние</option>
+        <option value="t3">Т3 — Высокие, редкие, светлые</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>5. Цвет глаз</label>
+      <select id="eyeColor">
+        <option value="t1">Т1 — Голубые / hazel</option>
+        <option value="t2" selected>Т2 — Карие / зелёные</option>
+        <option value="t3">Т3 — Тёмно-карие / чёрные</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>6. Форма глаз</label>
+      <select id="eyeShape">
+        <option value="t1">Т1 — Миндалевидные</option>
+        <option value="t2" selected>Т2 — Круглые</option>
+        <option value="t3">Т3 — Узкие / монолид</option>
+      </select>
+    </div>
+
+    <button class="btn btn-primary" id="analyzeBtn" style="margin-top:10px">ANALYZE FACE →</button>
+  </div>
+
+  <!-- Результаты -->
+  <div id="resultsSection">
+    <div class="card score-hero">
+      <div class="score-num" id="scoreNum">—</div>
+      <div class="score-max">/ 10</div>
+      <div class="verdict" id="verdict">—</div>
+    </div>
+
+    <div class="card">
+      <div class="section-label">Разбор по зонам</div>
+      <div class="breakdown" id="breakdown"></div>
+    </div>
+
+    <div class="card">
+      <div class="section-label">Looksmaxxing Guide</div>
+      <div id="guide"></div>
+    </div>
+
+    <button class="btn btn-secondary" id="restartBtn">Сканировать другое фото</button>
+  </div>
+
+  <footer>Pure frontend • Без внешних нейросетей • Данные никуда не отправляются</footer>
+</div>
+
+<script>
+const SCORE = {
+  skin:     { t1: 9.5, t2: 5.5, t3: 2.0 },
+  tone:     { t1: 9.0, t2: 6.0, t3: 2.5 },
+  lips:     { t1: 9.0, t2: 5.5, t3: 2.5 },
+  brows:    { t1: 9.8, t2: 5.5, t3: 1.8 },
+  eyeColor: { t1: 9.2, t2: 6.0, t3: 3.0 },
+  eyeShape: { t1: 9.7, t2: 5.5, t3: 2.0 }
+};
+
+const LIP_OPTS = {
+  male: [
+    { v: 't1', t: 'Т1 — Средней пухлости (идеал)' },
+    { v: 't2', t: 'Т2 — Пухлые' },
+    { v: 't3', t: 'Т3 — Тонкие' }
+  ],
+  female: [
+    { v: 't1', t: 'Т1 — Пухлые (идеал)' },
+    { v: 't2', t: 'Т2 — Средние' },
+    { v: 't3', t: 'Т3 — Тонкие' }
+  ]
+};
+
+const $ = id => document.getElementById(id);
+const lipsSelect = $('lips');
+let stream = null;
+
+function updateLips() {
+  const g = document.querySelector('input[name="gender"]:checked').value;
+  lipsSelect.innerHTML = LIP_OPTS[g].map(o => `<option value="${o.v}">${o.t}</option>`).join('');
+  lipsSelect.value = 't2';
+}
+document.querySelectorAll('input[name="gender"]').forEach(r => r.addEventListener('change', updateLips));
+updateLips();
+
+// Upload
+const dropzone = $('dropzone');
+const fileInput = $('fileInput');
+
+dropzone.onclick = () => fileInput.click();
+dropzone.ondragover = e => { e.preventDefault(); dropzone.classList.add('dragover'); };
+dropzone.ondragleave = () => dropzone.classList.remove('dragover');
+dropzone.ondrop = e => {
+  e.preventDefault();
+  dropzone.classList.remove('dragover');
+  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+};
+fileInput.onchange = () => { if (fileInput.files[0]) handleFile(fileInput.files[0]); };
+
+function handleFile(file) {
+  if (!file.type.startsWith('image/')) return alert('Нужно изображение');
+  const url = URL.createObjectURL(file);
+  const img = $('previewImg');
+  img.onload = () => {
+    URL.revokeObjectURL(url);
+    showPreview();
+  };
+  img.src = url;
+}
+
+$('camBtn').onclick = async () => {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+    const video = document.createElement('video');
+    video.srcObject = stream;
+    video.playsInline = true;
+    await video.play();
+
+    // Создаём кнопку снятия кадра
+    const capBtn = document.createElement('button');
+    capBtn.className = 'btn btn-primary';
+    capBtn.style.marginTop = '14px';
+    capBtn.textContent = 'Снять кадр';
+    $('uploadCard').appendChild(capBtn);
+
+    capBtn.onclick = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext('2d').drawImage(video, 0, 0);
+      stopCamera();
+      capBtn.remove();
+      $('previewImg').src = canvas.toDataURL('image/jpeg');
+      showPreview();
+    };
+  } catch (e) {
+    alert('Нет доступа к камере: ' + e.message);
+  }
+};
+
+function stopCamera() {
+  if (stream) {
+    stream.getTracks().forEach(t => t.stop());
+    stream = null;
+  }
+}
+
+function showPreview() {
+  $('previewWrap').style.display = 'block';
+  $('calibCard').style.display = 'block';
+  $('uploadCard').style.display = 'none';
+  $('resultsSection').style.display = 'none';
+}
+
+$('restartBtn').onclick = () => {
+  stopCamera();
+  $('previewWrap').style.display = 'none';
+  $('calibCard').style.display = 'none';
+  $('resultsSection').style.display = 'none';
+  $('uploadCard').style.display = 'block';
+  fileInput.value = '';
+};
+
+// Analyze
+$('analyzeBtn').onclick = () => {
+  const gender = document.querySelector('input[name="gender"]:checked').value;
+  const data = {
+    skin: $('skin').value,
+    tone: $('tone').value,
+    lips: $('lips').value,
+    brows: $('brows').value,
+    eyeColor: $('eyeColor').value,
+    eyeShape: $('eyeShape').value
+  };
+
+  const skinS = SCORE.skin[data.skin];
+  const toneS = SCORE.tone[data.tone];
+  const lipsS = SCORE.lips[data.lips];
+  const browsS = SCORE.brows[data.brows];
+  const eyeColS = SCORE.eyeColor[data.eyeColor];
+  const eyeShS = SCORE.eyeShape[data.eyeShape];
+
+  // Веса: глаза+брови ~40%, кожа ~30%, остальное ~30%
+  const eyesBrows = eyeShS * 0.45 + browsS * 0.35 + eyeColS * 0.20;
+  const skinBlock = skinS * 0.70 + toneS * 0.30;
+  const rest = lipsS * 0.55 + eyeColS * 0.45;
+
+  let total = eyesBrows * 0.40 + skinBlock * 0.30 + rest * 0.30;
+  total = Math.round(Math.min(10, Math.max(1, total)) * 10) / 10;
+
+  showResults(total, gender, data, {
+    eyeShS, browsS, skinS, lipsS, eyeColS, toneS
+  });
+};
+
+function showResults(score, gender, data, s) {
+  $('resultsSection').style.display = 'block';
+  $('calibCard').style.display = 'none';
+
+  const scoreEl = $('scoreNum');
+  const verd = $('verdict');
+  scoreEl.textContent = score.toFixed(1);
+  scoreEl.style.color = scoreColor(score);
+  verd.textContent = getVerdict(score, gender);
+  verd.style.color = scoreColor(score);
+
+  const bd = $('breakdown');
+  bd.innerHTML = '';
+
+  const items = [
+    { name: 'Форма глаз', score: s.eyeShS, text: eyeText(data.eyeShape) },
+    { name: 'Брови', score: s.browsS, text: browText(data.brows) },
+    { name: 'Кожа', score: s.skinS, text: skinText(data.skin) },
+    { name: 'Губы', score: s.lipsS, text: lipText(data.lips, gender) },
+    { name: 'Цвет глаз', score: s.eyeColS, text: eyeColorText(data.eyeColor) },
+    { name: 'Тон кожи', score: s.toneS, text: toneText(data.tone) }
+  ];
+
+  items.forEach(it => {
+    const badge = it.score >= 7.5 ? 'badge-high' : it.score >= 4.5 ? 'badge-mid' : 'badge-low';
+    bd.innerHTML += `
+      <div class="trait">
+        <div class="trait-top">
+          <span class="trait-name">${it.name}</span>
+          <span class="badge ${badge}">${it.score.toFixed(1)}</span>
+        </div>
+        <div class="trait-desc">${it.text}</div>
+      </div>`;
+  });
+
+  const guide = $('guide');
+  guide.innerHTML = '';
+  getGuide(data, gender).forEach(g => {
+    guide.innerHTML += `<div class="guide-item"><h4>${g.title}</h4><p>${g.text}</p></div>`;
+  });
+
+  $('resultsSection').scrollIntoView({ behavior: 'smooth' });
+}
+
+function scoreColor(s) {
+  if (s >= 8.5) return 'var(--neon)';
+  if (s >= 6.5) return 'var(--neon2)';
+  if (s >= 4.5) return 'var(--warn)';
+  return 'var(--danger)';
+}
+
+function getVerdict(s, g) {
+  if (s >= 9.0) return g === 'male' ? 'GIGACHAD' : 'STACY';
+  if (s >= 8.0) return g === 'male' ? 'Chad' : 'Becky+';
+  if (s >= 7.0) return 'High-tier Normie';
+  if (s >= 5.5) return 'Average / Normie';
+  if (s >= 4.0) return 'Low-tier Normie';
+  if (s >= 2.5) return 'Subhuman territory';
+  return 'SUBHUMAN';
+}
+
+function eyeText(sh) {
+  if (sh === 't1') return 'Миндалевидная форма — топовая. Даёт intensity и сексуальность.';
+  if (sh === 't2') return 'Круглая форма — softer look. Выглядит моложе.';
+  return 'Узкая / монолид — сильно ограничивает выразительность взгляда.';
+}
+function browText(b) {
+  if (b === 't1') return 'Низкие густые тёмные брови — один из сильнейших frame-элементов (hunter eyes).';
+  if (b === 't2') return 'Средние брови. Нормально, но не дают максимального intensity.';
+  return 'Высокие редкие светлые брови сильно ослабляют верхнюю треть лица.';
+}
+function skinText(s) {
+  if (s === 't1') return 'Чистая кожа — мощный фундамент. Сильно поднимает восприятие любых черт.';
+  if (s === 't2') return 'Лёгкие высыпания заметны. Кожа — самый быстрый рычаг улучшения.';
+  return 'Проблемная текстура сильно давит на рейтинг. Это приоритет №1.';
+}
+function lipText(l, g) {
+  if (g === 'male') {
+    if (l === 't1') return 'Средние губы — золотая середина для мужчин.';
+    if (l === 't2') return 'Пухлые губы у мужчин часто читаются как softer.';
+    return 'Тонкие губы делают нижнюю треть лица жёстче.';
+  }
+  if (l === 't1') return 'Пухлые губы — ключевой soft-feature для женщин.';
+  if (l === 't2') return 'Средние губы — нейтрально.';
+  return 'Тонкие губы заметно снижают женственность нижней трети.';
+}
+function eyeColorText(c) {
+  if (c === 't1') return 'Голубые / hazel дают высокий контраст и запоминаемость.';
+  if (c === 't2') return 'Карие / зелёные — стандарт, без сильного wow-эффекта.';
+  return 'Тёмные глаза снижают контраст радужки.';
+}
+function toneText(t) {
+  if (t === 't1') return 'Светлый / фарфоровый тон даёт чистый контраст.';
+  if (t === 't2') return 'Медовый / оливковый — нейтрально-приятный.';
+  return 'Тёмный / жёлтый тон снижает контрастность черт.';
+}
+
+function getGuide(data, gender) {
+  const r = [];
+  if (data.skin !== 't1') {
+    r.push({
+      title: 'Кожа — приоритет',
+      text: data.skin === 't3'
+        ? 'Мягкое очищение 2×/день, увлажнение, SPF 50 каждый день. Адапален или ретиноид на ночь (после консультации). Не трогай лицо руками. Результат за 8–12 недель сильно поднимет балл.'
+        : 'Салициловая кислота / бензоил пероксид точечно, ретинол вечером, чистая наволочка.'
+    });
+  }
+  if (data.brows !== 't1') {
+    r.push({
+      title: 'Брови',
+      text: 'Затемни брови (тинт / покраска). Для роста — миноксидил 5% локально (осторожно с side-effects). Цель: гуще, темнее, визуально ниже.'
+    });
+  }
+  if (data.eyeShape === 't3') {
+    r.push({
+      title: 'Форма глаз',
+      text: 'Mewing + правильная осанка головы. На фото — свет сверху. Хирургические опции рассматривай только после глубокого ресёрча.'
+    });
+  }
+  if (data.lips === 't3') {
+    r.push({
+      title: 'Губы',
+      text: gender === 'female'
+        ? 'Филлер гиалуроновой кислоты у хорошего специалиста — самый прямой путь. Начни с малого объёма.'
+        : 'У мужчин филлеры используют реже. Визуально — контуринг и выбор ракурса.'
+    });
+  }
+  if (r.length < 2) {
+    r.push({
+      title: 'Общий looksmaxxing',
+      text: 'Сон 7–9 часов, силовые тренировки + низкий bodyfat, уход за волосами/бородой, осанка, стиль. Harmony лица важнее отдельных черт.'
+    });
+  }
+  return r;
+}
+</script>
+</body>
+</html>
